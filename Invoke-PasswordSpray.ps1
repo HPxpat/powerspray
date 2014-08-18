@@ -6,7 +6,7 @@
   .PARAMETER Users
     User, comma delimited users, a local users file, or an online comma delimited users string.
   .PARAMETER Passwords
-    Password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string.
+    Password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string. To be prompted for a password, provide "*" as the password.
   .PARAMETER Split
     Split up requests between each target.
   .PARAMETER Delay
@@ -27,8 +27,12 @@ function Invoke-PasswordSpray
     [double]$Jitter = 0.20,
     [double]$Delay = 0.00
   )
-
-  $Parameters = @("Targets","Users","Passwords")
+  [System.Collections.ArrayList]$Parameters = @("Targets","Users","Passwords")
+  if($Passwords -eq "*")
+  {
+    $Passwords = @((Get-Credential -Message "Provide a password to spray with.  The username doesn't matter.").GetNetworkCredential().Password)
+    $Parameters.Remove("Passwords")
+  }
   foreach($Parameter in $Parameters)
   {
     if((Test-Path (Get-Variable -Name $Parameter -ValueOnly)) -eq $True)
