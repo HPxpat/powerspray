@@ -104,8 +104,8 @@ function Invoke-PasswordSpray
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " Starting Attack... ")
   foreach($Target in $TargetsValue)
   {
-    if($TargetsValue.Count -gt 1){$Arguments = @($Target,$SplitUsers[($TargetsValue.IndexOf($Target)+1)],$Passwords,$Jitter,$Delay)}
-    else{$Arguments = @($Target,$Users,$Passwords,$Jitter,$Delay)}
+    if($TargetsValue.Count -gt 1){$Arguments = @($Target,$SplitUsers[($TargetsValue.IndexOf($Target)+1)],$PasswordsValue,$Jitter,$Delay)}
+    else{$Arguments = @($Target,$UsersValue,$PasswordsValue,$Jitter,$Delay)}
     $Jobs += (Start-Job $ScriptBlock -ArgumentList $Arguments).Name
   }
 
