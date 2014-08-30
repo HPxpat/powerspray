@@ -55,6 +55,11 @@ function Invoke-PasswordSpray
     }
   }
 
+  Write-Verbose ((Get-Date -Format [hh:mm:ss]) + " Parsing inputs Complete")
+  Write-Verbose ("Targets Found: "  + $TargetsValue.Count)
+  Write-Verbose ("Users Found: "  + $UsersValue.Count)
+  Write-Verbose ("Passwords Found: "  + $PasswordsValue.Count)
+
   $Jobs = @()
   $ScriptBlock = {
     param(
@@ -99,6 +104,7 @@ function Invoke-PasswordSpray
         break
       }
     }
+    Write-Verbose ("Split users into " + $SplitUsers.Count + " lists of " + $SplitUsers[1].Count + " characters")
   }
 
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " Starting Attack... ")
@@ -107,11 +113,13 @@ function Invoke-PasswordSpray
     if($TargetsValue.Count -gt 1){$Arguments = @($Target,$SplitUsers[($TargetsValue.IndexOf($Target)+1)],$PasswordsValue,$Jitter,$Delay)}
     else{$Arguments = @($Target,$UsersValue,$PasswordsValue,$Jitter,$Delay)}
     $Jobs += (Start-Job $ScriptBlock -ArgumentList $Arguments).Name
+    Write-Verbose ((Get-Date -Format [hh:mm:ss]) + " Started Job for " + $Target + " with " + $Arguments[1].Count + " users and " + $Arguments[2].Count + " passwords")
   }
 
   foreach($JobName in $Jobs)
   {
-    foreach($Result in (Wait-Job -Name $JobName | Receive-Job)){$Result}
+    Write-Verbose ((Get-Date -Format [hh:mm:ss]) + " Waiting on Jobs...")
+    foreach($Result in (Wait-Job -Name $JobName | Receive-Job)){Write-Host $Result}
     Remove-Job -Name $JobName -Force
   }
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " All Jobs Complete. ")
