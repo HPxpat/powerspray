@@ -18,3 +18,11 @@ When more than one target is specified, multiple jobs are run in parrallel, and 
     "user1,user2,user3,user4"
     "user1"
     "C:\users.txt"
+
+### Performance Tests [10k Users, 1 Password]:
+    Powershell For Loop
+        1 minute 56 seconds
+    Powershell Parallel Jobs [1 Target]
+        1 minute 54 seconds
+    Powershell Parallel Jobs [2 Targets]
+        58 seconds
