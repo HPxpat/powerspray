@@ -118,7 +118,7 @@ function Invoke-PasswordSpray
 
   foreach($JobName in $Jobs)
   {
-    Write-Verbose ((Get-Date -Format [hh:mm:ss]) + " Waiting on Jobs...")
+    Write-Verbose ((Get-Date -Format [hh:mm:ss]) + " Waiting on Job for target " + $TargetsValue[$Jobs.IndexOf($JobName)] + "...")
     foreach($Result in (Wait-Job -Name $JobName | Receive-Job)){Write-Host $Result}
     Remove-Job -Name $JobName -Force
   }
