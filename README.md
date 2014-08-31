@@ -26,3 +26,5 @@ When more than one target is specified, multiple jobs are run in parrallel, and 
         1 minute 54 seconds
     Powershell Parallel Jobs [2 Targets]
         58 seconds
+    Powershell Parallel Jobs [3 Targets]
+	41 seconds
