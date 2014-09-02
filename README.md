@@ -1,7 +1,7 @@
 #powerspray
 
 ##Invoke-PasswordSpray
-Perform a password spraying attack with powershell.
+Perform a password spraying attack with powershell. (v2 compatible)
 
 When more than one target is specified, multiple jobs are run in parrallel, and usernames are split among each target.  Assuming the second target isn't abnormally slow, this will result in a performance increase.
 
